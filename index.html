@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Content Generator - Powered by Gemini</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <h1 class="title">✨ AI Content Generator</h1>
+                <p class="subtitle">Powered by Google Gemini API</p>
+            </div>
+        </header>
+
+        <nav class="nav-tabs">
+            <button class="tab-button active" data-feature="ask">
+                <span class="icon">❓</span>
+                <span class="label">Ask Me Anything</span>
+            </button>
+            <button class="tab-button" data-feature="summarize">
+                <span class="icon">📝</span>
+                <span class="label">Quick Summarizer</span>
+            </button>
+            <button class="tab-button" data-feature="ideas">
+                <span class="icon">💡</span>
+                <span class="label">Idea Spark</span>
+            </button>
+            <button class="tab-button" data-feature="define">
+                <span class="icon">🔍</span>
+                <span class="label">Definition Finder</span>
+            </button>
+        </nav>
+
+        <main class="main-content">
+            
+            <section class="input-section">
+                <div class="input-group active" id="input-ask">
+                    <label for="input-ask-text" class="input-label">Your Question:</label>
+                    <textarea
+                        id="input-ask-text"
+                        class="input-textarea"
+                        placeholder="Ask me anything... (e.g., How does photosynthesis work?)"
+                        rows="4"
+                    ></textarea>
+                    <button class="submit-btn" data-feature="ask">Get Answer</button>
+                </div>
+
+                <div class="input-group hidden" id="input-summarize">
+                    <label for="input-summarize-text" class="input-label">Text to Summarize:</label>
+                    <textarea
+                        id="input-summarize-text"
+                        class="input-textarea"
+                        placeholder="Paste long text here... (articles, paragraphs, etc.)"
+                        rows="4"
+                    ></textarea>
+                    <button class="submit-btn" data-feature="summarize">Summarize</button>
+                </div>
+
+                <div class="input-group hidden" id="input-ideas">
+                    <label for="input-ideas-text" class="input-label">What ideas do you need?</label>
+                    <textarea
+                        id="input-ideas-text"
+                        class="input-textarea"
+                        placeholder="e.g., blog ideas, startup ideas, project ideas, marketing ideas..."
+                        rows="4"
+                    ></textarea>
+                    <button class="submit-btn" data-feature="ideas">Generate Ideas</button>
+                </div>
+
+                <div class="input-group hidden" id="input-define">
+                    <label for="input-define-text" class="input-label">Term to Define:</label>
+                    <textarea
+                        id="input-define-text"
+                        class="input-textarea"
+                        placeholder="Enter any term, concept, or word..."
+                        rows="4"
+                    ></textarea>
+                    <button class="submit-btn" data-feature="define">Get Definition</button>
+                </div>
+            </section>
+
+            <section class="results-section">
+                <div class="results-header">
+                    <h3>Result</h3>
+                    <button class="clear-btn" id="clear-btn">Clear</button>
+                </div>
+                <div class="results-content" id="results-content">
+                    <p class="placeholder">Your AI-generated content will appear here...</p>
+                </div>
+                <div class="loading hidden" id="loading">
+                    <div class="spinner"></div>
+                    <p>Generating content...</p>
+                </div>
+            </section>
+
+            <section class="api-key-section">
+                <div class="api-key-input">
+                    <label for="api-key-input">🔑 Gemini API Key:</label>
+                    <input
+                        type="password"
+                        id="api-key-input"
+                        class="api-key-field"
+                        placeholder="Enter your Gemini API key"
+                    >
+                    <small>Get your API key from <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio</a></small>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <p>&copy; 2025 AI Content Generator. Built with Vanilla JS & Google Gemini API.</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
