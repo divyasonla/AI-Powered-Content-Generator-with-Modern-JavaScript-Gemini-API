@@ -1,159 +1,138 @@
-const CONFIG = {
-  API_ENDPOINT: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
-  DEFAULT_TEMPERATURE: 0.7,
-  RESULT_DELAY: 300
+
+const API_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
+const API_KEY = "AIzaSyAzoPBASSk1UFkMMj7MW0DGNvEggwUr-ow"; 
+
+// DOM helpers
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+
+const resultsEl = $("#results-content");
+const loadingEl = $("#loading");
+
+const showLoading = () => loadingEl.classList.remove("hidden");
+const hideLoading = () => loadingEl.classList.add("hidden");
+const setResult = (text, isError = false) => {
+  resultsEl.innerHTML = `<p>${escapeHtml(text)}</p>`;
+  resultsEl.classList.toggle("error", isError);
 };
 
-const TAB_BUTTONS = document.querySelectorAll(".tab-button");
-const INPUT_GROUPS = document.querySelectorAll(".input-group");
-const FEATURE_DESCRIPTIONS = document.querySelectorAll(".feature-description");
-const SUBMIT_BUTTONS = document.querySelectorAll(".submit-btn");
+const escapeHtml = (str ) =>
+  String(str).replace(/[&<>"']/g, (s) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[s]));
 
-const CLEAR_BTN = document.getElementById("clear-btn");
-const RESULTS_CONTENT = document.getElementById("results-content");
-const LOADING_DIV = document.getElementById("loading");
-const API_KEY_INPUT = document.getElementById("api-key-input");
-const INPUT_TEXTAREA = document.getElementById("input-text");
-
-const appState = {
-  currentFeature: "ask",
-  apiKey: localStorage.getItem("gemini_api_key") || "",
-  isLoading: false
-};
-if (appState.apiKey) API_KEY_INPUT.value = appState.apiKey;
-
-const prepareBody = (text) => ({
-  contents: [{ parts: [{ text }] }],
-  generationConfig: { temperature: CONFIG.DEFAULT_TEMPERATURE, maxOutputTokens: 2048 }
-});
-
-const apiService = {
-  async generateContent(prompt) {
-    if (!appState.apiKey) throw new Error("🔑 Please enter your Gemini API key!");
-    if (!prompt.trim()) throw new Error("⚠️ Please enter a prompt.");
-
-    const res = await fetch(`${CONFIG.API_ENDPOINT}?key=${appState.apiKey}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(prepareBody(prompt))
-    });
-
-    const data = await res.json();
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) throw new Error("Invalid API response.");
-    return text;
+// API call
+async function callApi(prompt) {
+  if (!API_KEY) throw new Error('Missing API key');
+  const body = { contents: [{ parts: [{ text: prompt }] }] };
+  const res = await fetch(`${API_ENDPOINT}?key=${API_KEY}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || 'API Error');
   }
-};
+  const data = await res.json();
+  return data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+}
 
-const promptFactory = {
-  askQuestion: (q) => `Answer clearly:\n\n${q}`,
-  summarize: (t) => `Summarize the following text:\n\n${t}`,
-  generateIdeas: (r) => `Generate 5 creative ${r}.`,
-  define: (t) => `Explain the term: "${t}"`
-};
-
-const uiController = {
-  switchTab(feature) {
-    appState.currentFeature = feature;
-
-    TAB_BUTTONS.forEach((b) => b.classList.toggle("active", b.dataset.feature === feature));
-    INPUT_GROUPS.forEach((g) => g.classList.toggle("active", g.id === `input-${feature}`));
-    INPUT_GROUPS.forEach((g) => g.classList.toggle("hidden", g.id !== `input-${feature}`));
-    FEATURE_DESCRIPTIONS.forEach((d) => d.classList.toggle("hidden", d.id !== `description-${feature}`));
-
-    this.clearResults();
-    INPUT_TEXTAREA.focus();
-  },
-
-  showLoading() {
-    appState.isLoading = true;
-    LOADING_DIV.classList.remove("hidden");
-    SUBMIT_BUTTONS.forEach((b) => (b.disabled = true));
-  },
-
-  hideLoading() {
-    appState.isLoading = false;
-    LOADING_DIV.classList.add("hidden");
-    SUBMIT_BUTTONS.forEach((b) => (b.disabled = false));
-  },
-
-  displayResults(result, isError = false) {
-    setTimeout(() => {
-      RESULTS_CONTENT.innerHTML = `<p>${escapeHtml(result)}</p>`;
-      RESULTS_CONTENT.classList.toggle("success", !isError);
-      RESULTS_CONTENT.classList.toggle("error", isError);
-    }, CONFIG.RESULT_DELAY);
-  },
-
-  clearResults() {
-    RESULTS_CONTENT.innerHTML = `<p class="placeholder">Your AI-generated content will appear here...</p>`;
-    RESULTS_CONTENT.classList.remove("success", "error");
-
-    const textarea = document.getElementById(`input-${appState.currentFeature}-text`);
-    if (textarea) textarea.value = "";
-  },
-
-  saveApiKey(key) {
-    appState.apiKey = key;
-    localStorage.setItem("gemini_api_key", key);
-  }
-};
-
-const featureHandlers = {
-  ask: async (input) => executeFeature(promptFactory.askQuestion(input)),
-  summarize: async (input) => executeFeature(promptFactory.summarize(input)),
-  ideas: async (input) => executeFeature(promptFactory.generateIdeas(input)),
-  define: async (input) => executeFeature(promptFactory.define(input))
-};
-
-const executeFeature = async (prompt) => {
+// Feature functions
+async function handleAsk() {
+  const prompt = $(`#input-ask-text`).value.trim();
+  if (!prompt) return setResult('⚠️ Please enter a question', true);
+  showLoading();
   try {
-    uiController.showLoading();
-    const result = await apiService.generateContent(prompt);
-    uiController.hideLoading();
-    uiController.displayResults(result);
-  } catch (err) {
-    uiController.hideLoading();
-    uiController.displayResults(err.message, true);
-    console.error("Error:", err);
+    const text = await callApi(`Answer concisely:\n\n${prompt}`);
+    setResult(text);
+  } catch (e) {
+    setResult(e.message, true);
+  } finally {
+    hideLoading();
   }
-};
+}
 
-const escapeHtml = (t) =>
-  t.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[c]));
+async function handleSummarize() {
+  const text = $(`#input-summarize-text`).value.trim();
+  if (!text) return setResult('⚠️ Please paste text to summarize', true);
+  showLoading();
+  try {
+    const res = await callApi(`Summarize in 10-15 sentences:\n\n${text}`);
+    setResult(res);
+  } catch (e) {
+    setResult(e.message, true);
+  } finally {
+    hideLoading();
+  }
+}
 
-const initializeEventListeners = () => {
-  TAB_BUTTONS.forEach((btn) =>
-    btn.addEventListener("click", () => uiController.switchTab(btn.dataset.feature))
-  );
+async function handleIdeas() {
+  const what = $(`#input-ideas-text`).value.trim();
+  if (!what) return setResult('⚠️ Please tell what kind of ideas you want', true);
+  showLoading();
+  try {
+    const res = await callApi(`Generate 5 creative ${what}, numbered.`);
+    setResult(res);
+  } catch (e) {
+    setResult(e.message, true);
+  } finally {
+    hideLoading();
+  }
+}
 
-  SUBMIT_BUTTONS.forEach((btn) =>
-    btn.addEventListener("click", async () => {
-      const textarea = document.getElementById(`input-${btn.dataset.feature}-text`);
-      const input = textarea.value.trim();
-      if (!input) return uiController.displayResults("⚠️ Please enter some content!", true);
-      await featureHandlers[btn.dataset.feature](input);
+async function handleDefine() {
+  const term = $(`#input-define-text`).value.trim();
+  if (!term) return setResult('⚠️ Please enter a term to define', true);
+  showLoading();
+  try {
+    const res = await callApi(`Define and explain: ${term}`);
+    setResult(res);
+  } catch (e) {
+    setResult(e.message, true);
+  } finally {
+    hideLoading();
+  }
+}
+
+// Wiring
+function switchTab(feature) {
+  $$('.tab-button').forEach((b) => b.classList.toggle('active', b.dataset.feature === feature));
+  $$('.input-group').forEach((g) => g.classList.toggle('hidden', g.id !== `input-${feature}`));
+  $$('.feature-description').forEach((d) => d.classList.toggle('hidden', d.id !== `description-${feature}`));
+  setResult('');
+}
+
+function setup() {
+  // tabs
+  $$('.tab-button').forEach((btn) => btn.addEventListener('click', () => switchTab(btn.dataset.feature)));
+
+  // submit buttons
+  $$('.submit-btn').forEach((btn) =>
+    btn.addEventListener('click', () => {
+      const f = btn.dataset.feature;
+      if (f === 'ask') return handleAsk();
+      if (f === 'summarize') return handleSummarize();
+      if (f === 'ideas') return handleIdeas();
+      if (f === 'define') return handleDefine();
     })
   );
 
-  CLEAR_BTN.addEventListener("click", () => uiController.clearResults());
-  API_KEY_INPUT.addEventListener("change", (e) => uiController.saveApiKey(e.target.value));
+  // clear
+  const clearBtn = $('#clear-btn');
+  if (clearBtn) clearBtn.addEventListener('click', () => setResult(''));
 
-  document.querySelectorAll(".input-textarea").forEach((area) =>
-    area.addEventListener("keydown", (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-        document.querySelector(`[data-feature="${appState.currentFeature}"].submit-btn`)?.click();
+  // keyboard: Ctrl/Cmd+Enter to submit
+  $$('.input-textarea').forEach((ta) =>
+    ta.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        const active = $$('.tab-button').find((b) => b.classList.contains('active'))?.dataset.feature || 'ask';
+        document.querySelector(`[data-feature="${active}"]`).click();
       }
     })
   );
-};
 
-const initializeApp = () => {
-  initializeEventListeners();
-  uiController.switchTab("ask");
-  console.log("App Ready!");
-};
+  // default tab
+  switchTab('ask');
+}
 
-document.readyState === "loading"
-  ? document.addEventListener("DOMContentLoaded", initializeApp)
-  : initializeApp();
+// init
+document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', setup) : setup();
