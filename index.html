@@ -13,6 +13,24 @@
                 <h1 class="title">✨ AI Content Generator</h1>
                 <p class="subtitle">Powered by Google Gemini API</p>
             </div>
+            <div class="header-controls">
+                <div class="control-row">
+                    <div class="api-key-section">
+                        <label for="api-key-input" class="api-key-label">🔑 API Key:</label>
+                        <input
+                            type="password"
+                            id="api-key-input"
+                            class="api-key-input"
+                            placeholder="Paste your Gemini API key here"
+                        />
+                        <button id="api-key-save" class="api-key-save-btn">Save</button>
+                        <span id="api-key-status" class="api-key-status"></span>
+                    </div>
+                    <div class="header-extra">
+                        <button id="clear-key-btn" class="clear-key-btn">Clear Key</button>
+                    </div>
+                </div>
+            </div>
         </header>
 
         <nav class="nav-tabs">
@@ -100,6 +118,7 @@
         </main>
 
         <footer class="footer">
+
             <p>&copy; 2025 AI Content Generator. Built with Vanilla JS & Google Gemini API.</p>
         </footer>
     </div>

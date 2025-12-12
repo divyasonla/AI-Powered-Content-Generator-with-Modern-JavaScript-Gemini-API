@@ -1,6 +1,6 @@
 
 const API_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
-const API_KEY = "AIzaSyAzoPBASSk1UFkMMj7MW0DGNvEggwUr-ow"; 
+let API_KEY = localStorage.getItem('gemini-api-key') || ""; 
 
 // DOM helpers
 const $ = (sel) => document.querySelector(sel);
@@ -21,7 +21,7 @@ const escapeHtml = (str ) =>
 
 // API call
 async function callApi(prompt) {
-  if (!API_KEY) throw new Error('Missing API key');
+  if (!API_KEY) throw new Error('❌ API key not set. Please enter and save your key above.');
   const body = { contents: [{ parts: [{ text: prompt }] }] };
   const res = await fetch(`${API_ENDPOINT}?key=${API_KEY}`, {
     method: 'POST',
@@ -30,7 +30,8 @@ async function callApi(prompt) {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.error?.message || 'API Error');
+    const msg = err.error?.message || `HTTP ${res.status}`;
+    throw new Error(`❌ ${msg}`);
   }
   const data = await res.json();
   return data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
@@ -101,6 +102,41 @@ function switchTab(feature) {
   setResult('');
 }
 
+function setupApiKeyHandlers() {
+  const keyInput = $('#api-key-input');
+  const saveBtn = $('#api-key-save');
+  const statusSpan = $('#api-key-status');
+
+  if (!keyInput || !saveBtn) return;
+
+  // Load saved key into input
+  if (API_KEY) {
+    keyInput.value = API_KEY;
+    statusSpan.textContent = '✅ Key loaded';
+    statusSpan.style.color = 'green';
+  }
+
+  // Save key on button click
+  saveBtn.addEventListener('click', () => {
+    const key = keyInput.value.trim();
+    if (!key) {
+      statusSpan.textContent = '⚠️ Key is empty';
+      statusSpan.style.color = 'orange';
+      return;
+    }
+    API_KEY = key;
+    localStorage.setItem('gemini-api-key', key);
+    statusSpan.textContent = '✅ Saved';
+    statusSpan.style.color = 'green';
+    console.log('API key saved to localStorage');
+  });
+
+  // Also save on Enter in the input field
+  keyInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') saveBtn.click();
+  });
+}
+
 function setup() {
   // tabs
   $$('.tab-button').forEach((btn) => btn.addEventListener('click', () => switchTab(btn.dataset.feature)));
@@ -129,6 +165,9 @@ function setup() {
       }
     })
   );
+
+  // API key handlers
+  setupApiKeyHandlers();
 
   // default tab
   switchTab('ask');
